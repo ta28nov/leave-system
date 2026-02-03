@@ -1,0 +1,435 @@
+{
+    "info": {
+        "_postman_id": "leave-system-collection",
+        "name": "Leave System API",
+        "description": "Collection test đầy đủ cho Leave Application System.\nBao gồm Auth và Leave Application CRUD + Authorization flows.\n\nHướng dẫn sử dụng: Xem file POSTMAN_GUIDE.md",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Login (Admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// Đọc response từ server",
+                                    "var jsonData = pm.response.json();",
+                                    "",
+                                    "// Nếu login thành công và có token",
+                                    "if (jsonData.success && jsonData.data.access_token) {",
+                                    "    // Lưu token vào biến collection",
+                                    "    pm.collectionVariables.set(\"token\", jsonData.data.access_token);",
+                                    "    ",
+                                    "    // Log ra console để biết script đã chạy",
+                                    "    console.log(\"Token updated for Admin\");",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": ["{{base_url}}"],
+                            "path": ["auth", "login"]
+                        }
+                    }
+                },
+                {
+                    "name": "Login (Manager)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.success && jsonData.data.access_token) {",
+                                    "    pm.collectionVariables.set(\"token\", jsonData.data.access_token);",
+                                    "    console.log(\"Token updated for Manager\");",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"manager1@example.com\",\n    \"password\": \"password123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": ["{{base_url}}"],
+                            "path": ["auth", "login"]
+                        }
+                    }
+                },
+                {
+                    "name": "Login (Employee)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.success && jsonData.data.access_token) {",
+                                    "    pm.collectionVariables.set(\"token\", jsonData.data.access_token);",
+                                    "    console.log(\"Token updated for Employee\");",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"employee1@example.com\",\n    \"password\": \"password123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": ["{{base_url}}"],
+                            "path": ["auth", "login"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Me Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/auth/me",
+                            "host": ["{{base_url}}"],
+                            "path": ["auth", "me"]
+                        }
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/auth/logout",
+                            "host": ["{{base_url}}"],
+                            "path": ["auth", "logout"]
+                        }
+                    }
+                },
+                {
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/auth/refresh",
+                            "host": ["{{base_url}}"],
+                            "path": ["auth", "refresh"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Leave Applications",
+            "item": [
+                {
+                    "name": "List All Requests",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/leave-applications?status=new&page=1",
+                            "host": ["{{base_url}}"],
+                            "path": ["leave-applications"],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "new",
+                                    "description": "Filter by status: new/pending/approved/rejected/cancelled"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Pagination page number"
+                                },
+                                {
+                                    "key": "user_id",
+                                    "value": "",
+                                    "description": "Filter by user ID",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "month",
+                                    "value": "",
+                                    "description": "Filter by month (1-12)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "",
+                                    "description": "Filter by year (e.g. 2026)",
+                                    "disabled": true
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Request (Annual)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// Đọc response (đơn vừa tạo)",
+                                    "var jsonData = pm.response.json();",
+                                    "",
+                                    "// Nếu tạo thành công và có ID",
+                                    "if (jsonData.success && jsonData.data.id) {",
+                                    "    // Lưu ID vào biến để dùng cho các requests tiếp theo",
+                                    "    pm.collectionVariables.set(\"leave_id\", jsonData.data.id);",
+                                    "    ",
+                                    "    // Log ra ID để kiểm tra",
+                                    "    console.log(\"Created Leave ID: \" + jsonData.data.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"start_date\": \"2026-02-10\",\n    \"end_date\": \"2026-02-12\",\n    \"reason\": \"Nghỉ phép đi du lịch\",\n    \"type\": \"annual\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/leave-applications",
+                            "host": ["{{base_url}}"],
+                            "path": ["leave-applications"]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Request (Sick)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.success && jsonData.data.id) {",
+                                    "    pm.collectionVariables.set(\"leave_id\", jsonData.data.id);",
+                                    "    console.log(\"Created Leave ID: \" + jsonData.data.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"start_date\": \"2026-02-15\",\n    \"end_date\": \"2026-02-16\",\n    \"reason\": \"Nghỉ ốm\",\n    \"type\": \"sick\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/leave-applications",
+                            "host": ["{{base_url}}"],
+                            "path": ["leave-applications"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/leave-applications/{{leave_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["leave-applications", "{{leave_id}}"]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Request",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"start_date\": \"2026-02-11\",\n    \"end_date\": \"2026-02-13\",\n    \"reason\": \"Dời lịch đi du lịch (Updated)\",\n    \"type\": \"annual\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/leave-applications/{{leave_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["leave-applications", "{{leave_id}}"]
+                        }
+                    }
+                },
+                {
+                    "name": "Cancel Request (Employee)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/leave-applications/{{leave_id}}/cancel",
+                            "host": ["{{base_url}}"],
+                            "path": [
+                                "leave-applications",
+                                "{{leave_id}}",
+                                "cancel"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Approve Request (Manager)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/leave-applications/{{leave_id}}/approve",
+                            "host": ["{{base_url}}"],
+                            "path": [
+                                "leave-applications",
+                                "{{leave_id}}",
+                                "approve"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Reject Request (Manager)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"reason\": \"Từ chối do nhân sự thiếu hụt trong giai đoạn này\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/leave-applications/{{leave_id}}/reject",
+                            "host": ["{{base_url}}"],
+                            "path": [
+                                "leave-applications",
+                                "{{leave_id}}",
+                                "reject"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Request (Admin)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/leave-applications/{{leave_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["leave-applications", "{{leave_id}}"]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://127.0.0.1:8000/api",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "leave_id",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

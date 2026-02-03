@@ -40,6 +40,25 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        
+        /*
+        |--------------------------------------------------------------------------
+        | API Guard - JWT Authentication
+        |--------------------------------------------------------------------------
+        |
+        | Guard này sử dụng JWT (JSON Web Token) để xác thực API requests.
+        | Khi request có header "Authorization: Bearer {token}", JWT driver sẽ:
+        | 1. Decode token để lấy user ID từ "sub" claim
+        | 2. Tìm user trong database thông qua provider 'users'
+        | 3. Set user vào auth()->user() nếu token hợp lệ
+        |
+        | Sử dụng: Route::middleware('auth:api')
+        |
+        */
+        'api' => [
+            'driver' => 'jwt',
+            'provider' => 'users',
+        ],
     ],
 
     /*

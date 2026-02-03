@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Inbox,
+  Calendar,
 } from "lucide-vue-next";
 import StatusBadge from "../components/StatusBadge.vue";
 import Navbar from "../components/Navbar.vue";
@@ -32,20 +33,66 @@ const selectedApplication = ref(null);
 const rejectReason = ref("");
 const isProcessing = ref(false);
 
-// Fetch all applications
-onMounted(async () => {
+// USE BACKEND PAGINATION
+const paginationData = computed(() => leavesStore.pagination);
+const applications = computed(() => leavesStore.applications);
+
+// Fetch applications with backend filtering
+const fetchApplications = async () => {
+  leavesStore.isLoading = true;
+  
   try {
-    await leavesStore.fetchApplications();
+    const params = {
+      page: paginationData.value.currentPage,
+    };
+    
+    // Only add filter if not "all"
+    if (statusFilter.value === "pending") {
+      // Backend doesn't have "pending" status exactly, it has "new" and "pending"
+      // We'll fetch all and filter client-side for now, or handle in backend
+      // For now, fetch all and we'll handle this properly
+    }
+    
+    await leavesStore.fetchApplications(params);
+    
+    console.log('[ManagerApproval] Fetched applications:', {
+      total: paginationData.value.total,
+      page: paginationData.value.currentPage,
+      lastPage: paginationData.value.lastPage,
+      count: applications.value.length
+    });
   } catch (error) {
+    console.error('[ManagerApproval] Failed to fetch:', error);
     toast.error("Failed to load applications");
   } finally {
-    isInitialLoading.value = false;
+    leavesStore.isLoading = false;
   }
+};
+
+// Fetch on mount
+onMounted(async () => {
+  isInitialLoading.value = true;
+  await fetchApplications();
+  isInitialLoading.value = false;
 });
 
-// Filtered applications (exclude own applications)
+// Watch filter changes
+watch(statusFilter, async () => {
+  leavesStore.pagination.currentPage = 1;
+  await fetchApplications();
+});
+
+// Go to page
+const goToPage = async (page) => {
+  if (page < 1 || page > paginationData.value.lastPage) return;
+  leavesStore.pagination.currentPage = page;
+  await fetchApplications();
+};
+
+// Filter applications (client-side for now since backend auto-filters by user_id for Employee)
+// Manager/Admin sees all, so we need to exclude own applications
 const filteredApplications = computed(() => {
-  let filtered = leavesStore.applications.filter(
+  let filtered = applications.value.filter(
     (app) => app.user_id !== authStore.user?.id
   );
 
@@ -62,31 +109,10 @@ const filteredApplications = computed(() => {
   );
 });
 
-// Pagination
-const currentPage = ref(1);
-const itemsPerPage = 10;
-
-const paginatedApplications = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  return filteredApplications.value.slice(start, end);
-});
-
-const totalPages = computed(() => {
-  return Math.ceil(filteredApplications.value.length / itemsPerPage) || 1;
-});
-
-// Reset page when filter changes
-watch(statusFilter, () => {
-  currentPage.value = 1;
-});
-
 // Stats
 const pendingCount = computed(() => {
-  return leavesStore.applications.filter(
-    (app) =>
-      app.user_id !== authStore.user?.id &&
-      (app.status === "new" || app.status === "pending")
+  return filteredApplications.value.filter(
+    (app) => app.status === "new" || app.status === "pending"
   ).length;
 });
 
@@ -115,6 +141,46 @@ const formatDate = (date) => {
   }
 };
 
+const formatDateTime = (datetime) => {
+  if (!datetime) return "—";
+  try {
+    return new Date(datetime).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return datetime;
+  }
+};
+
+const getRelativeTime = (datetime) => {
+  if (!datetime) return "—";
+  try {
+    const date = new Date(datetime);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return formatDate(datetime);
+  } catch {
+    return datetime;
+  }
+};
+
+// Get user name from relationship
+const getUserName = (app) => {
+  return app.user?.name || app.user_name || 'Employee';
+};
+
 // View detail
 const handleView = (app) => {
   selectedApplication.value = app;
@@ -131,28 +197,31 @@ const openApproveModal = (app) => {
 const confirmApprove = async () => {
   if (!selectedApplication.value) return;
   
-  // Store the ID and name before closing modals
   const appId = selectedApplication.value.id;
-  const userName = selectedApplication.value.user_name || 'employee';
+  const userName = getUserName(selectedApplication.value);
 
   isProcessing.value = true;
 
   try {
+    console.log('[ManagerApproval] Approving application:', appId);
     const result = await leavesStore.approveApplication(appId);
 
     if (result.success) {
-      // Close modals first, then show toast
+      console.log('[ManagerApproval] Approve success');
       showApproveModal.value = false;
       showDetailModal.value = false;
       selectedApplication.value = null;
       
-      // Use nextTick to ensure DOM is updated before toast
-      await new Promise(resolve => setTimeout(resolve, 100));
       toast.success(`Approved request from ${userName}`);
+      
+      // Refetch to get updated data
+      await fetchApplications();
     } else {
+      console.error('[ManagerApproval] Approve failed:', result.message);
       toast.error(result.message || "Failed to approve request");
     }
   } catch (error) {
+    console.error('[ManagerApproval] Approve error:', error);
     toast.error("An error occurred while approving");
   } finally {
     isProcessing.value = false;
@@ -170,30 +239,33 @@ const openRejectModal = (app) => {
 const confirmReject = async () => {
   if (!selectedApplication.value) return;
   
-  // Store the ID and name before closing modals
   const appId = selectedApplication.value.id;
-  const userName = selectedApplication.value.user_name || 'employee';
+  const userName = getUserName(selectedApplication.value);
   const reason = rejectReason.value;
 
   isProcessing.value = true;
 
   try {
+    console.log('[ManagerApproval] Rejecting application:', appId, 'Reason:', reason);
     const result = await leavesStore.rejectApplication(appId, reason);
 
     if (result.success) {
-      // Close modals first, then show toast
+      console.log('[ManagerApproval] Reject success');
       showRejectModal.value = false;
       showDetailModal.value = false;
       selectedApplication.value = null;
       rejectReason.value = "";
       
-      // Use nextTick to ensure DOM is updated before toast
-      await new Promise(resolve => setTimeout(resolve, 100));
       toast.success(`Rejected request from ${userName}`);
+      
+      // Refetch to get updated data
+      await fetchApplications();
     } else {
+      console.error('[ManagerApproval] Reject failed:', result.message);
       toast.error(result.message || "Failed to reject request");
     }
   } catch (error) {
+    console.error('[ManagerApproval] Reject error:', error);
     toast.error("An error occurred while rejecting");
   } finally {
     isProcessing.value = false;
@@ -226,8 +298,7 @@ const confirmReject = async () => {
 
     <!-- Content -->
     <div class="max-w-7xl mx-auto px-4 py-6">
-      <!-- Filters -->
-      <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+      <!-- Filters -->\n      <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center gap-4">
           <div class="flex items-center gap-3">
             <Filter class="w-5 h-5 text-gray-400" />
@@ -251,7 +322,7 @@ const confirmReject = async () => {
                 'px-4 py-2 rounded-lg font-medium text-sm transition',
                 statusFilter === 'all'
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
               ]"
             >
               All
@@ -265,7 +336,7 @@ const confirmReject = async () => {
 
       <!-- Loading -->
       <div
-        v-if="isInitialLoading"
+        v-if="isInitialLoading || leavesStore.isLoading"
         class="bg-white rounded-xl shadow-sm p-12 flex justify-center"
       >
         <LoadingSpinner size="lg" />
@@ -296,16 +367,20 @@ const confirmReject = async () => {
         <!-- Mobile Card View -->
         <div class="block sm:hidden divide-y divide-gray-100">
           <div
-            v-for="app in paginatedApplications"
+            v-for="app in filteredApplications"
             :key="app.id"
             class="p-4"
           >
             <div class="flex items-start justify-between mb-3">
               <div>
-                <p class="font-medium text-gray-900">{{ app.user_name || 'Employee' }}</p>
+                <p class="font-medium text-gray-900">{{ getUserName(app) }}</p>
                 <p class="text-sm text-gray-500">{{ getLeaveTypeLabel(app.type) }}</p>
               </div>
               <StatusBadge :status="app.status" />
+            </div>
+            <div class="text-xs text-gray-500 mb-2 flex items-center gap-1">
+              <Calendar class="w-3 h-3" />
+              <span>Created {{ getRelativeTime(app.created_at) }}</span>
             </div>
             <div class="text-sm text-gray-600 mb-3">
               <p>
@@ -325,14 +400,16 @@ const confirmReject = async () => {
               <template v-if="canApprove(app.status)">
                 <button
                   @click="openApproveModal(app)"
-                  class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
+                  :disabled="isProcessing"
+                  class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition disabled:opacity-50"
                   title="Approve"
                 >
                   <CheckCircle class="w-5 h-5" />
                 </button>
                 <button
                   @click="openRejectModal(app)"
-                  class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                  :disabled="isProcessing"
+                  class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
                   title="Reject"
                 >
                   <XCircle class="w-5 h-5" />
@@ -370,6 +447,11 @@ const confirmReject = async () => {
                 <th
                   class="px-6 py-3 text-left text-sm font-semibold text-gray-900"
                 >
+                  Created
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-sm font-semibold text-gray-900"
+                >
                   Reason
                 </th>
                 <th
@@ -386,12 +468,12 @@ const confirmReject = async () => {
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr
-                v-for="app in paginatedApplications"
+                v-for="app in filteredApplications"
                 :key="app.id"
                 class="hover:bg-gray-50 transition"
               >
                 <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                  {{ app.user_name || 'Employee' }}
+                  {{ getUserName(app) }}
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600">
                   {{ getLeaveTypeLabel(app.type) }}
@@ -402,6 +484,10 @@ const confirmReject = async () => {
                 </td>
                 <td class="px-6 py-4 text-sm font-medium text-gray-900">
                   {{ app.total_days }}
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                  <div>{{ formatDate(app.created_at) }}</div>
+                  <div class="text-xs text-gray-400">{{ getRelativeTime(app.created_at) }}</div>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
                   {{ app.reason }}
@@ -421,14 +507,16 @@ const confirmReject = async () => {
                     <template v-if="canApprove(app.status)">
                       <button
                         @click="openApproveModal(app)"
-                        class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
+                        :disabled="isProcessing"
+                        class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition disabled:opacity-50"
                         title="Approve"
                       >
                         <CheckCircle class="w-5 h-5" />
                       </button>
                       <button
                         @click="openRejectModal(app)"
-                        class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                        :disabled="isProcessing"
+                        class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
                         title="Reject"
                       >
                         <XCircle class="w-5 h-5" />
@@ -441,32 +529,6 @@ const confirmReject = async () => {
             </tbody>
           </table>
         </div>
-
-        <!-- Pagination -->
-        <div
-          v-if="totalPages > 1"
-          class="px-4 py-4 border-t border-gray-100 flex items-center justify-between"
-        >
-          <p class="text-sm text-gray-600">
-            Page {{ currentPage }} of {{ totalPages }}
-          </p>
-          <div class="flex items-center gap-2">
-            <button
-              @click="currentPage = Math.max(1, currentPage - 1)"
-              :disabled="currentPage === 1"
-              class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              <ChevronLeft class="w-5 h-5" />
-            </button>
-            <button
-              @click="currentPage = Math.min(totalPages, currentPage + 1)"
-              :disabled="currentPage === totalPages"
-              class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              <ChevronRight class="w-5 h-5" />
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -475,7 +537,7 @@ const confirmReject = async () => {
       <div v-if="selectedApplication" class="space-y-4">
         <div class="flex items-center justify-between">
           <span class="text-gray-600">Employee</span>
-          <span class="font-medium">{{ selectedApplication.user_name || 'Employee' }}</span>
+          <span class="font-medium">{{ getUserName(selectedApplication) }}</span>
         </div>
         <div class="flex items-center justify-between">
           <span class="text-gray-600">Status</span>
@@ -500,6 +562,10 @@ const confirmReject = async () => {
             >{{ selectedApplication.total_days }} day(s)</span
           >
         </div>
+        <div class="flex items-center justify-between">
+          <span class="text-gray-600">Created</span>
+          <span class="text-sm">{{ formatDateTime(selectedApplication.created_at) }}</span>
+        </div>
         <div>
           <span class="text-gray-600 block mb-2">Reason</span>
           <p class="bg-gray-50 p-3 rounded-lg text-gray-900">
@@ -514,13 +580,15 @@ const confirmReject = async () => {
           >
             <button
               @click="openRejectModal(selectedApplication)"
-              class="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-lg transition"
+              :disabled="isProcessing"
+              class="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-lg transition disabled:opacity-50"
             >
               Reject
             </button>
             <button
               @click="openApproveModal(selectedApplication)"
-              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition"
+              :disabled="isProcessing"
+              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition disabled:opacity-50"
             >
               Approve
             </button>
@@ -540,7 +608,7 @@ const confirmReject = async () => {
       v-model="showApproveModal"
       type="success"
       title="Approve Request?"
-      :message="`Are you sure you want to approve the leave request from ${selectedApplication?.user_name || 'this employee'}?`"
+      :message="`Are you sure you want to approve the leave request from ${selectedApplication ? getUserName(selectedApplication) : 'this employee'}?`"
       confirmText="Yes, Approve"
       cancelText="Cancel"
       :loading="isProcessing"
@@ -553,7 +621,7 @@ const confirmReject = async () => {
       <div class="space-y-4">
         <p class="text-gray-600">
           Are you sure you want to reject the request from
-          <span class="font-medium">{{ selectedApplication?.user_name || 'this employee' }}</span>?
+          <span class="font-medium">{{ selectedApplication ? getUserName(selectedApplication) : 'this employee' }}</span>?
         </p>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2"
@@ -562,8 +630,9 @@ const confirmReject = async () => {
           <textarea
             v-model="rejectReason"
             rows="3"
+            :disabled="isProcessing"
             placeholder="Enter reason for rejection..."
-            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition resize-none"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition resize-none disabled:bg-gray-100"
           ></textarea>
         </div>
       </div>

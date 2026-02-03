@@ -1,29 +1,69 @@
-# Logs
-logs
-*.log
+# ------------------------------------------------------------------------------
+# 1. Dependencies & Logs (Thư viện và Log lỗi)
+# ------------------------------------------------------------------------------
+node_modules
+.pnpm-store
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.log
 
-node_modules
+# ------------------------------------------------------------------------------
+# 2. Build Output (Kết quả build - Không bao giờ commit cái này)
+# ------------------------------------------------------------------------------
 dist
 dist-ssr
+coverage
 *.local
 
-# Editor directories and files
+# ------------------------------------------------------------------------------
+# 3. Environment Variables (BẢO MẬT - QUAN TRỌNG NHẤT)
+# ------------------------------------------------------------------------------
+# Chặn tất cả file .env để tránh lộ key lên GitHub
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# Ngoại trừ file ví dụ (để đồng đội biết cần điền key gì)
+!.env.example
+
+# ------------------------------------------------------------------------------
+# 4. IDE & Editor (File cấu hình của trình soạn thảo)
+# ------------------------------------------------------------------------------
 .vscode/*
+# Giữ lại file extensions.json để gợi ý extension cho team
 !.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# env files
-.env
-.env.local
-.env.*.local
+# ------------------------------------------------------------------------------
+# 5. System Files (File rác của hệ điều hành)
+# ------------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ------------------------------------------------------------------------------
+# 6. Deployment & Tooling (Vercel, Vite, Testing)
+# ------------------------------------------------------------------------------
+# Thư mục cấu hình của Vercel (chứa token deploy) - Rất quan trọng
+.vercel
+
+# Cypress / Testing artifacts (Nếu có dùng test)
+cypress/videos
+cypress/screenshots
+
+# Vite specific (Nếu có generate report)
+stats.html

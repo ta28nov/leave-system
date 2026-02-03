@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+import { useToast } from "../composables/useToast";
 import {
   LogOut,
   Menu,
@@ -14,6 +15,7 @@ import {
 
 const authStore = useAuthStore();
 const router = useRouter();
+const toast = useToast();
 
 // Mobile menu state
 const isMobileMenuOpen = ref(false);
@@ -41,7 +43,15 @@ const getRoleBadgeClass = computed(() => {
 
 const handleLogout = async () => {
   closeMobileMenu();
+  
+  console.log('[Navbar] Logging out user:', authStore.user?.name);
+  const userName = authStore.user?.name || 'User';
+  
   await authStore.logout();
+  
+  console.log('[Navbar] Logout successful, redirecting to login');
+  toast.success(`Goodbye, ${userName}! You've been logged out.`);
+  
   router.push("/login");
 };
 

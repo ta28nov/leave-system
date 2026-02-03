@@ -1,240 +1,284 @@
-# Leave Application System - Vue.js 3
+# Leave System - Frontend
 
-A complete, multi-view Frontend for an internal Leave Application System built with Vue.js 3, Vite, Pinia, and Tailwind CSS.
+Ứng dụng quản lý nghỉ phép cho công ty. Xây dựng bằng Vue.js 3 + Vite.
 
-## Features
+## Yêu cầu hệ thống
 
-- **Authentication System**: Role-based login (Admin, Manager, Employee)
-- **Employee Dashboard**: View leave balance, recent requests, and create new leave applications
-- **Leave Request Form**: Create leave requests with validation and automatic day calculation
-- **Manager Approval System**: Review and approve/reject employee leave requests
-- **Mock API**: Simulated API calls with realistic delays
-- **Responsive Design**: Mobile-friendly interface using Tailwind CSS
-- **State Management**: Centralized state with Pinia stores
+- Node.js 16+
+- npm hoặc yarn
+- Backend API đang chạy tại `http://localhost:8000`
 
-## Tech Stack
+## Cài đặt
 
-- **Framework**: Vue.js 3 (Composition API)
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS v3
-- **State Management**: Pinia
-- **Routing**: Vue Router
-- **Icons**: Lucide Vue Next
-- **HTTP Client**: Axios (mocked)
+```bash
+# Clone project
+git clone <https://github.com/ta28nov/leave-system>
+cd frontend
 
-## Project Structure
-
-```
-src/
-├── components/          # Reusable components
-│   ├── Navbar.vue
-│   └── StatusBadge.vue
-├── views/              # Page components
-│   ├── LoginView.vue
-│   ├── DashboardView.vue
-│   ├── LeaveRequestForm.vue
-│   └── ManagerApprovalView.vue
-├── stores/             # Pinia stores
-│   ├── auth.js
-│   └── leaves.js
-├── router/
-│   └── index.js
-├── App.vue
-├── main.js
-└── style.css
+# Cài đặt dependencies
+npm install
 ```
 
-## Installation & Setup
+## Cấu hình
 
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+Tạo file `.env` trong thư mục `frontend`:
 
-2. **Start development server**:
-   ```bash
-   npm run dev
-   ```
-   The application will open at `http://localhost:5173`
-
-3. **Build for production**:
-   ```bash
-   npm run build
-   ```
-
-4. **Preview production build**:
-   ```bash
-   npm run preview
-   ```
-
-## Test Credentials
-
-The system includes three test users:
-
-| Role     | Email                | Password |
-|----------|----------------------|----------|
-| Admin    | admin@example.com       | password123 |
-| Manager  | manager1@example.com     | password123 |
-| Employee | employee1@example.com    | password123 |
-
-### Quick Start:
-Click the "Fill Employee Credentials" button on the login page to auto-fill test credentials.
-
-## Usage
-
-### Employee View
-1. **Login** with employee credentials
-2. **Dashboard**: View your leave balance and recent applications
-3. **Create Request**: Click "Create Request" to submit a new leave application
-4. **Track Status**: Monitor your request status in the recent activity table
-
-### Manager View
-1. **Login** with manager credentials
-2. **Approval Management**: Access the "Approvals" menu
-3. **Review Requests**: View all pending leave applications
-4. **Approve/Reject**: Click the green checkmark to approve or red X to reject requests
-
-## Data Schema
-
-### User Object
-```json
-{
-  "id": "USER001",
-  "name": "Nguyen Van A",
-  "email": "employee@company.com",
-  "type": 2  // 0: Admin, 1: Manager, 2: Employee
-}
+```env
+VITE_API_URL=http://localhost:8000/api
 ```
 
-### Leave Application Object
-```json
-{
-  "id": "LEAVE001",
-  "user_id": "USER001",
-  "user_name": "Nguyen Van A",
-  "start_date": "2024-02-01",
-  "end_date": "2024-02-03",
-  "total_days": 3,
-  "type": "annual",  // Options: 'annual', 'sick', 'unpaid'
-  "status": "pending",  // Options: 'new', 'pending', 'approved', 'rejected', 'cancelled'
-  "reason": "Personal matters"
-}
+## Chạy ứng dụng
+
+### Development
+
+```bash
+npm run dev
 ```
 
-## Features Details
+Mở trình duyệt tại: `http://localhost:5173`
 
-### Login System
-- Email and password validation
-- Session persistence using localStorage
-- Automatic redirect to dashboard for authenticated users
-- Test credential helper button
+### Production Build
 
-### Employee Dashboard
-- **Statistics Cards**:
-  - Total Allowance: 12 days (static)
-  - Used Days: Calculated from approved leaves
-  - Remaining Days: 12 - Used Days
-  - Pending Requests: Count of new/pending applications
+```bash
+npm run build
+```
 
-- **Recent Activity Table**:
-  - View all leave applications sorted by date
-  - Color-coded status badges
-  - Quick action button to create new requests
+File build sẽ nằm trong thư mục `dist/`
 
-### Leave Request Form
-- **Fields**:
-  - Leave Type: Select dropdown (Annual, Sick, Unpaid)
-  - Start Date: Date picker
-  - End Date: Date picker
-  - Reason: Text area with validation
-  - Total Days: Auto-calculated read-only field
+### Preview Production Build
 
-- **Validation**:
-  - All fields required
-  - End date must be after start date
-  - Reason must be at least 5 characters
-  - Real-time error messages
+```bash
+npm run preview
+```
 
-### Manager Approval System
-- Filter applications by status (Pending/All)
-- View employee information and request details
-- Approve requests (turns green)
-- Reject requests (turns red)
-- Action buttons disabled for non-pending requests
+## Tài khoản test
 
-## Status Badge Colors
+Backend cung cấp các tài khoản test sau:
 
-| Status    | Color  | Badge |
-|-----------|--------|-------|
-| New       | Yellow | New   |
-| Pending   | Yellow | Pending |
-| Approved  | Green  | Approved |
-| Rejected  | Red    | Rejected |
-| Cancelled | Gray   | Cancelled |
+**Admin:**
+- Email: `admin@example.com`
+- Password: `password123`
 
-## State Management (Pinia)
+**Manager:**
+- Email: `manager1@example.com`
+- Password: `password123`
+**Employee:**
+- Email: `employee1@test.com`
+- Password: `password123`
 
-### Auth Store (`stores/auth.js`)
-- `user`: Current user object
-- `token`: Authentication token
-- `isLoading`: Loading state
-- `error`: Error messages
-- Methods: `login()`, `logout()`, `initializeAuth()`
-- Helpers: `isAuthenticated()`, `isAdmin()`, `isManager()`, `isEmployee()`
+## Cấu trúc thư mục
 
-### Leaves Store (`stores/leaves.js`)
-- `applications`: Array of all leave applications
-- `isLoading`: Loading state
-- Methods:
-  - `createApplication(formData)`: Create new request
-  - `approveApplication(id)`: Approve request
-  - `rejectApplication(id)`: Reject request
-  - `cancelApplication(id)`: Cancel request
-  - `getApplicationsByUser(userId)`: Filter by user
-  - `getTotalApprovedDays(userId)`: Calculate used days
+```
+frontend/
+├── public/              # Static files
+├── src/
+│   ├── assets/          # Images, fonts, styles
+│   ├── components/      # Reusable components
+│   │   ├── ConfirmModal.vue
+│   │   ├── ErrorBoundary.vue
+│   │   ├── LoadingSpinner.vue
+│   │   ├── Modal.vue
+│   │   ├── Navbar.vue
+│   │   ├── StatusBadge.vue
+│   │   ├── Toast.vue
+│   │   └── ToastContainer.vue
+│   ├── composables/     # Vue composables
+│   │   └── useToast.js
+│   ├── router/          # Vue Router config
+│   │   └── index.js
+│   ├── services/        # API services
+│   │   ├── api.js
+│   │   ├── authService.js
+│   │   └── leaveService.js
+│   ├── stores/          # Pinia stores
+│   │   ├── auth.js
+│   │   └── leaves.js
+│   ├── views/           # Page components
+│   │   ├── AdminDashboardView.vue
+│   │   ├── DashboardView.vue
+│   │   ├── ForbiddenView.vue
+│   │   ├── LeaveListView.vue
+│   │   ├── LeaveRequestForm.vue
+│   │   ├── LoginView.vue
+│   │   ├── ManagerApprovalView.vue
+│   │   └── NotFoundView.vue
+│   ├── App.vue
+│   └── main.js
+├── .env                 # Environment variables
+├── index.html
+├── package.json
+└── vite.config.js
+```
+
+## Công nghệ sử dụng
+
+### Core
+- Vue.js 3 - Progressive JavaScript framework
+- Vite - Build tool
+- Vue Router - Routing
+- Pinia - State management
+
+### UI/UX
+- Tailwind CSS - Utility-first CSS framework
+- Lucide Vue Next - Icon library
+- Custom toast notifications
+
+### HTTP Client
+- Axios - Promise based HTTP client
+
+## Tính năng chính
+
+### Cho tất cả người dùng
+- Đăng nhập / Đăng ký
+- Xem dashboard cá nhân
+- Tạo đơn xin nghỉ phép
+- Xem danh sách đơn của mình
+- Hủy đơn đang chờ duyệt
+- Lọc theo trạng thái
+- Phân trang
+
+### Cho Manager/Admin
+- Xem tất cả đơn nghỉ phép
+- Duyệt đơn
+- Từ chối đơn (có lý do)
+- Lọc theo nhân viên/trạng thái
+
+### Cho Admin
+- Dashboard quản trị
+- Quản lý người dùng
+- Thống kê tổng quan
+
+## API Integration
+
+Ứng dụng kết nối với backend Laravel qua REST API:
+
+**Authentication:**
+- POST `/api/auth/login` - Đăng nhập
+- POST `/api/auth/register` - Đăng ký
+- POST `/api/auth/logout` - Đăng xuất
+- GET `/api/auth/me` - Lấy thông tin user
+
+**Leave Applications:**
+- GET `/api/leave-applications` - Danh sách đơn (có phân trang)
+- POST `/api/leave-applications` - Tạo đơn mới
+- PUT `/api/leave-applications/{id}` - Cập nhật đơn
+- DELETE `/api/leave-applications/{id}` - Xóa đơn
+- POST `/api/leave-applications/{id}/cancel` - Hủy đơn
+- POST `/api/leave-applications/{id}/approve` - Duyệt đơn
+- POST `/api/leave-applications/{id}/reject` - Từ chối đơn
+
+## State Management
+
+Sử dụng Pinia với 2 stores chính:
+
+**Auth Store** (`stores/auth.js`):
+- Quản lý authentication state
+- Lưu token và user info
+- Auto-refresh token
+- Role-based access
+
+**Leaves Store** (`stores/leaves.js`):
+- Quản lý leave applications
+- Pagination metadata
+- CRUD operations
+- Approve/Reject/Cancel
 
 ## Routing
 
-| Route                 | Component             | Auth Required | Role Restricted |
-|-----------------------|-----------------------|---------------|-----------------|
-| `/login`              | LoginView             | No            | -               |
-| `/dashboard`          | DashboardView         | Yes           | -               |
-| `/leave/create`       | LeaveRequestForm      | Yes           | -               |
-| `/manager/approvals`  | ManagerApprovalView   | Yes           | Manager/Admin   |
+**Public routes:**
+- `/login` - Trang đăng nhập
 
-## Mock API Delays
+**Protected routes:**
+- `/dashboard` - Dashboard cá nhân
+- `/leave/list` - Danh sách đơn của tôi
+- `/leave/create` - Tạo đơn mới
+- `/manager/approvals` - Duyệt đơn (Manager/Admin only)
+- `/admin/dashboard` - Dashboard admin (Admin only)
 
-All API calls are simulated with delays:
-- **Login**: 500ms
-- **Create Application**: 800ms
-- **Approve/Reject**: 500ms
+**Error routes:**
+- `/403` - Forbidden
+- `/404` - Not Found
 
-## Browser Support
+## Features kỹ thuật
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
+### Security
+- JWT token authentication
+- Auto token refresh
+- Protected routes với navigation guards
+- Role-based access control (RBAC)
 
-## Notes
+### UX/UI
+- Toast notifications cho tất cả actions
+- Loading states
+- Error handling
+- Empty states
+- Mobile responsive
+- Field-level validation errors
 
-- This is a frontend-only implementation with mocked API calls
-- Data is persisted in Pinia stores during the session
-- Authentication token is stored in localStorage
-- No backend server required for development/testing
-- For production use, integrate with a real backend API
+### Performance
+- Backend pagination (không load hết data)
+- Lazy loading routes
+- Optimized re-renders với computed properties
+- Axios interceptors cho token refresh
 
-## Future Enhancements
+### Developer Experience
+- Console logging cho debugging
+- TypeScript-ready structure
+- Reusable components
+- Composables pattern
+- Centralized API services
 
-- Real backend API integration
-- Email notifications
-- Calendar view for leave planning
-- Admin user management
-- Leave type customization
-- Advanced filtering and sorting
-- Export to CSV/PDF
-- Dashboard charts and analytics
+## Xử lý lỗi
 
-## License
+Ứng dụng xử lý các HTTP status codes:
 
-MIT
+- `200/201` - Success
+- `401` - Unauthorized (redirect về login)
+- `403` - Forbidden (hiện trang 403)
+- `422` - Validation errors (hiện errors dưới từng field)
+- `500` - Server error (hiện toast error)
+
+## Responsive Design
+
+Ứng dụng responsive với breakpoints:
+
+- Mobile: < 640px (card view)
+- Tablet: 640px - 1024px
+- Desktop: > 1024px (table view)
+
+## Build & Deploy
+
+### Development
+```bash
+npm run dev
+```
+
+### Production
+```bash
+# Build
+npm run build
+
+# Files sẽ nằm trong dist/
+# Upload dist/ lên web server (Nginx, Apache, etc.)
+```
+
+### Environment Variables
+
+**Development** (`.env`):
+```env
+VITE_API_URL=http://localhost:8000/api
+```
+
+**Production** (`.env.production`):
+```env
+VITE_API_URL=https://api.yourdomain.com/api
+```
+
+## Lưu ý khi deploy
+
+1. Cập nhật `VITE_API_URL` trong `.env.production`
+2. Đảm bảo backend CORS cho phép domain của frontend
+3. Build project: `npm run build`
+4. Upload thư mục `dist/` lên server
+5. Configure server để redirect tất cả routes về `index.html` (SPA mode)
+

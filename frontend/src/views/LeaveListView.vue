@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Calendar,
+  User,
 } from "lucide-vue-next";
 import StatusBadge from "../components/StatusBadge.vue";
 import Navbar from "../components/Navbar.vue";
@@ -53,54 +55,53 @@ const getLeaveTypeLabel = (type) => {
   return types[type] || type;
 };
 
-// Fetch data on mount
-onMounted(async () => {
+// USE BACKEND PAGINATION - Computed from store
+const paginationData = computed(() => leavesStore.pagination);
+const applications = computed(() => leavesStore.applications);
+
+// Fetch applications with backend pagination
+const fetchApplications = async () => {
+  leavesStore.isLoading = true;
+  
   try {
-    await leavesStore.fetchApplications({ user_id: authStore.user?.id });
+    await leavesStore.fetchApplications({
+      status: statusFilter.value || undefined,
+      page: paginationData.value.currentPage,
+    });
+    
+    console.log('[LeaveList] Fetched applications:', {
+      total: paginationData.value.total,
+      page: paginationData.value.currentPage,
+      lastPage: paginationData.value.lastPage,
+      count: applications.value.length
+    });
   } catch (error) {
+    console.error('[LeaveList] Failed to fetch applications:', error);
     toast.error("Failed to load applications");
   } finally {
-    isInitialLoading.value = false;
+    leavesStore.isLoading = false;
   }
+};
+
+// Fetch data on mount
+onMounted(async () => {
+  isInitialLoading.value = true;
+  await fetchApplications();
+  isInitialLoading.value = false;
 });
 
-// Filtered and sorted applications
-const filteredApplications = computed(() => {
-  if (!authStore.user?.id) return [];
-  
-  let filtered = leavesStore.applications.filter(
-    (app) => app.user_id === authStore.user.id
-  );
-
-  if (statusFilter.value) {
-    filtered = filtered.filter((app) => app.status === statusFilter.value);
-  }
-
-  return filtered.sort(
-    (a, b) =>
-      new Date(b.created_at || b.start_date) -
-      new Date(a.created_at || a.start_date)
-  );
+// Watch filter changes - refetch from backend
+watch(statusFilter, async () => {
+  leavesStore.pagination.currentPage = 1; // Reset to page 1
+  await fetchApplications();
 });
 
-// Pagination
-const currentPage = ref(1);
-const itemsPerPage = 10;
-
-const paginatedApplications = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  return filteredApplications.value.slice(start, end);
-});
-
-const totalPages = computed(() => {
-  return Math.ceil(filteredApplications.value.length / itemsPerPage) || 1;
-});
-
-// Reset page when filter changes
-watch(statusFilter, () => {
-  currentPage.value = 1;
-});
+// Go to page - fetch from backend
+const goToPage = async (page) => {
+  if (page < 1 || page > paginationData.value.lastPage) return;
+  leavesStore.pagination.currentPage = page;
+  await fetchApplications();
+};
 
 // Check if can cancel
 const canCancel = (app) => {
@@ -122,6 +123,43 @@ const formatDate = (date) => {
     });
   } catch {
     return date;
+  }
+};
+
+// Format datetime (for created_at, updated_at)
+const formatDateTime = (datetime) => {
+  if (!datetime) return "—";
+  try {
+    return new Date(datetime).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return datetime;
+  }
+};
+
+// Get relative time (e.g., "2 hours ago")
+const getRelativeTime = (datetime) => {
+  if (!datetime) return "—";
+  try {
+    const date = new Date(datetime);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return formatDate(datetime);
+  } catch {
+    return datetime;
   }
 };
 
@@ -150,10 +188,13 @@ const confirmCancel = async () => {
       toast.success("Request cancelled successfully");
       showCancelModal.value = false;
       showDetailModal.value = false;
+      // Refetch to get updated data
+      await fetchApplications();
     } else {
       toast.error(result.message || "Failed to cancel request");
     }
   } catch (error) {
+    console.error('[LeaveList] Cancel error:', error);
     toast.error("An error occurred while cancelling");
   } finally {
     isCancelling.value = false;
@@ -225,14 +266,14 @@ const handleCreateNew = () => {
             </option>
           </select>
           <span class="text-sm text-gray-600">
-            {{ filteredApplications.length }} request(s)
+            {{ paginationData.total }} request(s) total
           </span>
         </div>
       </div>
 
       <!-- Loading -->
       <div
-        v-if="isInitialLoading"
+        v-if="isInitialLoading || leavesStore.isLoading"
         class="bg-white rounded-xl shadow-sm p-12 flex justify-center"
       >
         <LoadingSpinner size="lg" />
@@ -240,7 +281,7 @@ const handleCreateNew = () => {
 
       <!-- Empty State -->
       <div
-        v-else-if="filteredApplications.length === 0"
+        v-else-if="applications.length === 0"
         class="bg-white rounded-xl shadow-sm p-12 text-center"
       >
         <div
@@ -266,7 +307,7 @@ const handleCreateNew = () => {
       <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
         <!-- Mobile Card View -->
         <div class="block sm:hidden divide-y divide-gray-100">
-          <div v-for="app in paginatedApplications" :key="app.id" class="p-4">
+          <div v-for="app in applications" :key="app.id" class="p-4">
             <div class="flex items-start justify-between mb-3">
               <div>
                 <p class="font-medium text-gray-900">
@@ -278,6 +319,10 @@ const handleCreateNew = () => {
                 </p>
               </div>
               <StatusBadge :status="app.status" />
+            </div>
+            <div class="text-xs text-gray-500 mb-2 flex items-center gap-1">
+              <Calendar class="w-3 h-3" />
+              <span>Created {{ getRelativeTime(app.created_at) }}</span>
             </div>
             <p class="text-sm text-gray-600 mb-3 line-clamp-2">
               {{ app.reason }}
@@ -330,6 +375,11 @@ const handleCreateNew = () => {
                 <th
                   class="px-6 py-3 text-left text-sm font-semibold text-gray-900"
                 >
+                  Created
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-sm font-semibold text-gray-900"
+                >
                   Reason
                 </th>
                 <th
@@ -346,7 +396,7 @@ const handleCreateNew = () => {
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr
-                v-for="app in paginatedApplications"
+                v-for="app in applications"
                 :key="app.id"
                 class="hover:bg-gray-50 transition"
               >
@@ -359,6 +409,10 @@ const handleCreateNew = () => {
                 </td>
                 <td class="px-6 py-4 text-sm font-medium text-gray-900">
                   {{ app.total_days }}
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                  <div>{{ formatDate(app.created_at) }}</div>
+                  <div class="text-xs text-gray-400">{{ getRelativeTime(app.created_at) }}</div>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
                   {{ app.reason }}
@@ -390,25 +444,45 @@ const handleCreateNew = () => {
           </table>
         </div>
 
-        <!-- Pagination -->
+        <!-- Pagination - BACKEND PAGINATION -->
         <div
-          v-if="totalPages > 1"
-          class="px-4 py-4 border-t border-gray-100 flex items-center justify-between"
+          v-if="paginationData.lastPage > 1"
+          class="px-4 py-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <p class="text-sm text-gray-600">
-            Page {{ currentPage }} of {{ totalPages }}
+            Page {{ paginationData.currentPage }} of {{ paginationData.lastPage }}
+            <span class="text-gray-400 ml-2">({{ paginationData.total }} total)</span>
           </p>
           <div class="flex items-center gap-2">
             <button
-              @click="currentPage = Math.max(1, currentPage - 1)"
-              :disabled="currentPage === 1"
+              @click="goToPage(paginationData.currentPage - 1)"
+              :disabled="paginationData.currentPage === 1 || leavesStore.isLoading"
               class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               <ChevronLeft class="w-5 h-5" />
             </button>
+            
+            <!-- Page numbers -->
+            <div class="flex items-center gap-1">
+              <button
+                v-for="page in Math.min(5, paginationData.lastPage)"
+                :key="page"
+                @click="goToPage(page)"
+                :disabled="leavesStore.isLoading"
+                :class="[
+                  'px-3 py-1 rounded-lg text-sm font-medium transition',
+                  page === paginationData.currentPage
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ]"
+              >
+                {{ page }}
+              </button>
+            </div>
+            
             <button
-              @click="currentPage = Math.min(totalPages, currentPage + 1)"
-              :disabled="currentPage === totalPages"
+              @click="goToPage(paginationData.currentPage + 1)"
+              :disabled="paginationData.currentPage === paginationData.lastPage || leavesStore.isLoading"
               class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               <ChevronRight class="w-5 h-5" />

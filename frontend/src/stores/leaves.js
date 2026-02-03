@@ -45,25 +45,35 @@ export const useLeavesStore = defineStore('leaves', () => {
         if (!queryParams[key]) delete queryParams[key]
       })
 
+      console.log('[Leaves Store] Fetching applications with params:', queryParams);
+
       const response = await leaveService.getApplications(queryParams)
       
+      console.log('[Leaves Store] Backend response:', response);
+
       if (response.success) {
-        applications.value = response.data.data || response.data || []
+        // Backend returns: { success: true, data: { current_page, data: [...], last_page, total, ... } }
+        const paginationData = response.data;
         
-        // Update pagination if meta exists
-        if (response.data.meta) {
-          pagination.value = {
-            currentPage: response.data.meta.current_page,
-            perPage: response.data.meta.per_page,
-            total: response.data.meta.total,
-            lastPage: response.data.meta.last_page
-          }
-        }
+        // The actual applications array is in data.data
+        applications.value = paginationData.data || [];
+        
+        // Update pagination metadata from Laravel pagination response
+        pagination.value = {
+          currentPage: paginationData.current_page || 1,
+          perPage: paginationData.per_page || 10,
+          total: paginationData.total || 0,
+          lastPage: paginationData.last_page || 1
+        };
+
+        console.log('[Leaves Store] Parsed applications:', applications.value.length);
+        console.log('[Leaves Store] Pagination:', pagination.value);
       }
       
       isLoading.value = false
       return applications.value
     } catch (err) {
+      console.error('[Leaves Store] Fetch error:', err);
       error.value = err.message || 'Không thể tải danh sách đơn'
       isLoading.value = false
       return []

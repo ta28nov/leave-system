@@ -25,10 +25,6 @@ COPY backend/ /var/www/html/
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Copy frontend build (dist)
-# NOTE: Bạn phải build frontend trước: cd frontend && npm run build
-COPY frontend/dist /var/www/html/public/dist
-
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache

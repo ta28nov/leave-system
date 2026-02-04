@@ -3,7 +3,7 @@ set -e
 
 echo "[KHOI DONG] Dang khoi dong ung dung Laravel..."
 
-# Äáº£m báº£o permissions
+# permissions
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Wait for database (optional, nhÆ°ng recommend)

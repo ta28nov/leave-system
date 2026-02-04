@@ -29,6 +29,11 @@ mix-manifest.json
 # OAuth Keys (Passport/Sanctum)
 /storage/*.key
 
+# SSL Certificates for Database (Aiven) - CẦN COMMIT để deploy
+# Exception: cho phép file .pem trong storage/certs
+!/storage/certs/
+!/storage/certs/*.pem
+
 # Laravel Pail (Logging mới)
 /storage/pail
 

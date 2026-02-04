@@ -1,0 +1,2 @@
+# This file ensures the certs directory is tracked by Git
+# CA certificates (.pem files) should be placed here

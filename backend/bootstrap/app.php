@@ -1,18 +1,8 @@
 <?php
 
 /**
- * Application Bootstrap Configuration
- * 
- * File cấu hình chính của Laravel application.
- * Định nghĩa routes, middlewares, và exception handlers.
- * 
- * Cấu hình:
- * - API Routes: /api/auth/*, /api/leave-applications/*
- * - Middleware: role (CheckRole), auth:api (JWT)
- * - Exception Handlers: 401, 403, 404, 422
- * 
- * @see config/auth.php - JWT guard configuration
- * @see routes/apis/ - API route files
+ * Cấu hình chính của ứng dụng Laravel.
+ * Định nghĩa routes, middlewares, và xử lý ngoại lệ (exception handlers).
  */
 
 use Illuminate\Foundation\Application;
@@ -34,83 +24,37 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-        /*
-        |--------------------------------------------------------------------------
-        | API Routes Registration
-        |--------------------------------------------------------------------------
-        |
-        | Sử dụng callback 'then' để load nhiều route files cho API.
-        | Tất cả routes trong callback sẽ có prefix 'api'.
-        |
-        | CRITICAL: Phải áp dụng middleware group 'api' để có SubstituteBindings!
-        | Nếu không có SubstituteBindings → Route Model Binding không hoạt động
-        | → {leaveApplication} vẫn là string thay vì Model → Policy check fail → 403
-        |
-        */
+        // Load API route files với prefix 'api' và middleware group 'api'
+        // QUAN TRỌNG: Phải có middleware 'api' để SubstituteBindings hoạt động
+        // (nếu không có → Route Model Binding lỗi → Policy check fail → 403)
         then: function () {
-            // Auth routes: /api/auth/...
-            // MUST apply 'api' middleware group for SubstituteBindings to work!
             Route::prefix('api')
-                ->middleware('api')  // ← FIX: Thêm middleware group 'api'
+                ->middleware('api')
                 ->group(base_path('routes/apis/auth.php'));
             
-            // Leave Application routes: /api/leave-applications/...
-            // MUST apply 'api' middleware group for SubstituteBindings to work!
             Route::prefix('api')
-                ->middleware('api')  // ← FIX: Thêm middleware group 'api'
+                ->middleware('api')
                 ->group(base_path('routes/apis/leaveApplication.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        /*
-        |--------------------------------------------------------------------------
-        | Middleware Aliases
-        |--------------------------------------------------------------------------
-        |
-        | Đăng ký alias cho custom middlewares.
-        | Sử dụng: Route::middleware('role:admin,manager')
-        |
-        */
+        // Đăng ký alias cho custom middleware
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Redirect When Unauthenticated
-        |--------------------------------------------------------------------------
-        |
-        | Khi API request không có token hoặc token không hợp lệ,
-        | thay vì redirect sang route 'login' (gây lỗi), 
-        | return JSON response 401 Unauthorized.
-        |
-        */
+        // API request không có token → trả JSON 401 thay vì redirect sang /login
         $middleware->redirectGuestsTo(function ($request) {
-            // Nếu là API request (Accept: application/json hoặc URL bắt đầu bằng /api)
-            // thì return null để không redirect, trigger AuthenticationException
             if ($request->expectsJson() || $request->is('api/*')) {
                 return null;
             }
-            
-            // Web requests redirect sang trang login (nếu có)
             return '/login';
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        /*
-        |--------------------------------------------------------------------------
-        | Authentication Exceptions (401 Unauthorized)
-        |--------------------------------------------------------------------------
-        |
-        | Xử lý các lỗi liên quan đến JWT Authentication:
-        | - AuthenticationException: Chưa đăng nhập / Token không có
-        | - TokenExpiredException: Token đã hết hạn
-        | - TokenInvalidException: Token không hợp lệ
-        | - JWTException: Lỗi JWT chung
-        |
-        */
         
-        // AuthenticationException → 401 (Chưa đăng nhập)
+        // === 401 - Chưa xác thực ===
+        
         $exceptions->render(function (AuthenticationException $e) {
             return response()->json([
                 'success' => false,
@@ -119,16 +63,14 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 401);
         });
 
-        // TokenExpiredException → 401 (Token hết hạn)
         $exceptions->render(function (TokenExpiredException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Token đã hết hạn. Vui lòng làm mới hoặc đăng nhập lại. / Token expired. Please refresh or login again.',
+                'message' => 'Token đã hết hạn. Vui lòng làm mới hoặc đăng nhập lại. / Token expired.',
                 'data' => null,
             ], 401);
         });
 
-        // TokenInvalidException → 401 (Token không hợp lệ)
         $exceptions->render(function (TokenInvalidException $e) {
             return response()->json([
                 'success' => false,
@@ -137,7 +79,6 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 401);
         });
 
-        // JWTException → 401 (Lỗi JWT chung)
         $exceptions->render(function (JWTException $e) {
             return response()->json([
                 'success' => false,
@@ -146,17 +87,8 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 401);
         });
 
-        /*
-        |--------------------------------------------------------------------------
-        | Authorization Exceptions (403 Forbidden)
-        |--------------------------------------------------------------------------
-        |
-        | Xử lý các lỗi liên quan đến Authorization:
-        | - AccessDeniedHttpException: Không có quyền truy cập
-        |
-        */
+        // === 403 - Không có quyền ===
         
-        // AccessDeniedHttpException → 403 (Không có quyền)
         $exceptions->render(function (AccessDeniedHttpException $e) {
             return response()->json([
                 'success' => false,
@@ -165,13 +97,8 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 403);
         });
 
-        /*
-        |--------------------------------------------------------------------------
-        | Not Found Exceptions (404)
-        |--------------------------------------------------------------------------
-        */
+        // === 404 - Không tìm thấy ===
 
-        // ModelNotFoundException → 404
         $exceptions->render(function (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
@@ -180,7 +107,6 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 404);
         });
 
-        // NotFoundHttpException → 404
         $exceptions->render(function (NotFoundHttpException $e) {
             return response()->json([
                 'success' => false,
@@ -189,13 +115,8 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 404);
         });
 
-        /*
-        |--------------------------------------------------------------------------
-        | Validation Exceptions (422)
-        |--------------------------------------------------------------------------
-        */
+        // === 422 - Dữ liệu không hợp lệ ===
 
-        // ValidationException → 422
         $exceptions->render(function (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -204,7 +125,6 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 422);
         });
 
-        // UnprocessableEntityHttpException → 422
         $exceptions->render(function (UnprocessableEntityHttpException $e) {
             return response()->json([
                 'success' => false,
@@ -213,4 +133,3 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 422);
         });
     })->create();
-

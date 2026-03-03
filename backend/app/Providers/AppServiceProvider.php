@@ -9,26 +9,18 @@ use App\Policies\LeaveApplicationPolicy;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services
-     */
     public function boot(): void
     {
         // Đăng ký Policy cho LeaveApplication
         Gate::policy(LeaveApplication::class, LeaveApplicationPolicy::class);
 
-        // Explicit Route Model Binding cho custom string ID
-        // Laravel 11 không tự nhận diện String ID khi tên param khác convention
-        // Route parameter {leaveApplication} sẽ tự động resolve thành LeaveApplication Model
-        // Tìm kiếm theo primary key: LeaveApplication::where('id', $value)->firstOrFail()
+        // Route Model Binding: {leaveApplication} tự động resolve thành Model
+        // (cần đăng ký thủ công vì dùng string ID thay vì auto-increment)
         \Illuminate\Support\Facades\Route::model('leaveApplication', LeaveApplication::class);
     }
 }

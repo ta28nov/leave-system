@@ -5,30 +5,16 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * RejectLeaveRequest
- * 
  * Validation cho API từ chối đơn nghỉ phép.
- * Yêu cầu phải có lý do từ chối.
+ * Bắt buộc phải có lý do từ chối.
  */
 class RejectLeaveRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     * 
-     * Authorization được check bởi middleware 'role:admin,manager'.
-     * Nếu đến được đây nghĩa là đã có quyền.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     * 
-     * Rules:
-     * - reason: Bắt buộc, chuỗi, tối đa 1000 ký tự
-     */
     public function rules(): array
     {
         return [
@@ -40,9 +26,6 @@ class RejectLeaveRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get custom messages for validation errors.
-     */
     public function messages(): array
     {
         return [
@@ -52,9 +35,6 @@ class RejectLeaveRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get custom attributes for validator errors.
-     */
     public function attributes(): array
     {
         return [

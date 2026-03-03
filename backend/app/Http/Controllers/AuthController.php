@@ -8,10 +8,8 @@ use App\Http\Requests\LoginRequest;
 use App\Helpers\ResponseHelper;
 
 /**
- * AuthController
- * 
- * Controller cho Authentication APIs
- * Controller chỉ nhận Request và trả về Response, logic nằm trong AuthService
+ * Controller cho Authentication APIs.
+ * Controller chỉ nhận Request, gọi Service xử lý, và trả về Response.
  */
 class AuthController extends Controller
 {
@@ -22,12 +20,7 @@ class AuthController extends Controller
         $this->auth_service = $auth_service;
     }
 
-    /**
-     * Đăng ký tài khoản mới
-     * POST /api/auth/register
-     * 
-     * Public endpoint - không cần token
-     */
+    /** Đăng ký tài khoản mới (công khai, không cần token) */
     public function register(RegisterRequest $request)
     {
         $token_data = $this->auth_service->register($request->validated());
@@ -39,12 +32,7 @@ class AuthController extends Controller
         );
     }
 
-    /**
-     * Đăng nhập và nhận JWT token
-     * POST /api/auth/login
-     * 
-     * Public endpoint - không cần token
-     */
+    /** Đăng nhập và nhận JWT token (công khai, không cần token) */
     public function login(LoginRequest $request)
     {
         $credentials = $request->validated();
@@ -64,12 +52,7 @@ class AuthController extends Controller
         );
     }
 
-    /**
-     * Đăng xuất - invalidate token hiện tại
-     * POST /api/auth/logout
-     * 
-     * Protected endpoint - cần token
-     */
+    /** Đăng xuất — vô hiệu hóa token hiện tại */
     public function logout()
     {
         $this->auth_service->logout();
@@ -80,12 +63,7 @@ class AuthController extends Controller
         );
     }
 
-    /**
-     * Làm mới token - lấy token mới từ token cũ
-     * POST /api/auth/refresh
-     * 
-     * Protected endpoint - cần token
-     */
+    /** Làm mới token */
     public function refresh()
     {
         $token_data = $this->auth_service->refresh();
@@ -96,12 +74,7 @@ class AuthController extends Controller
         );
     }
 
-    /**
-     * Lấy thông tin user hiện tại từ token
-     * GET /api/auth/me
-     * 
-     * Protected endpoint - cần token
-     */
+    /** Lấy thông tin user hiện tại từ token */
     public function me()
     {
         $user = $this->auth_service->me();

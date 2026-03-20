@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Rule kiểm tra ngày nghỉ có trùng lặp với đơn khác không.
- * 
+ * Kiểm tra ngày nghỉ có trùng với đơn đang active không (pending, approved).
  * Thuật toán: Hai khoảng [A1, A2] và [B1, B2] trùng nếu A1 <= B2 AND A2 >= B1
  * Chỉ kiểm tra đơn đang active (new, pending, approved).
  */

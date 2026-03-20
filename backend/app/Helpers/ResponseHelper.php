@@ -5,7 +5,7 @@ namespace App\Helpers;
 use Illuminate\Http\JsonResponse;
 
 /**
- * Helper định dạng tất cả API response theo chuẩn thống nhất.
+ * Helper định dạng tất cả API response theo chuẩn thống nhất.Đảm bảo mọi response đều có cấu trúc giống nhau, frontend luôn nhận cùng 1 format
  * Format: { "success": true/false, "message": "...", "data": ... }
  */
 class ResponseHelper

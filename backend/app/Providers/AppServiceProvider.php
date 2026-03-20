@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Gate;
 use App\Models\LeaveApplication;
 use App\Policies\LeaveApplicationPolicy;
 
+// Providers là nơi Laravel khởi tạo và đăng ký các dependencies (services và models)
+
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void

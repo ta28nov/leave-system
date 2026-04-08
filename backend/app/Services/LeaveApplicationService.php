@@ -105,7 +105,7 @@ class LeaveApplicationService
         // Tính tổng ngày nghỉ (bao gồm cả ngày đầu và ngày cuối)
         $start_date = Carbon::parse($data['start_date']);
         $end_date = Carbon::parse($data['end_date']);
-        $data['total_days'] = $end_date->diffInDays($start_date) + 1;
+        $data['total_days'] = $start_date->diffInDays($end_date) + 1;
 
         $data['user_id'] = Auth::id();
         $data['created_by'] = Auth::id();
@@ -132,7 +132,7 @@ class LeaveApplicationService
         if (isset($data['start_date']) || isset($data['end_date'])) {
             $start_date = Carbon::parse($data['start_date'] ?? $leave_application->start_date);
             $end_date = Carbon::parse($data['end_date'] ?? $leave_application->end_date);
-            $data['total_days'] = $end_date->diffInDays($start_date) + 1;
+            $data['total_days'] = $start_date->diffInDays($end_date) + 1;
         }
 
         $data['updated_by'] = Auth::id();

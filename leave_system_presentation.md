@@ -1,4 +1,4 @@
-# 🎓 LEAVE APPLICATION SYSTEM — TÀI LIỆU THUYẾT TRÌNH TOÀN DIỆN
+# 🎓 LEAVE APPLICATION SYSTEM — TÀI LIỆU TOÀN DIỆN
 
 > Hệ thống quản lý đơn xin nghỉ phép — Laravel Backend API
 
